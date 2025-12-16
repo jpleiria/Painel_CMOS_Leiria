@@ -13,220 +13,212 @@
     <style>
         /* --- RESET & BASICS --- */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-
-        :root { --clock-scale: 2; /* Começa logo no valor 2 por segurança CSS */ }
-
+        :root { 
+            --clock-scale: 2; 
+            /* Cores Base */
+            --sun-color: #fbbf24;
+            --rain-color: #60a5fa;
+            --thunder-color: #eab308;
+            --moon-color: #a78bfa;
+            --cloud-color: #94a3b8;
+        }
         body {
             font-family: 'Outfit', sans-serif;
-            color: #ffffff;
-            height: 100vh; height: 100dvh; width: 100vw;
-            overflow: hidden;
-            background-color: #1a202c;
-            cursor: default;
-            user-select: none;
-            position: relative; 
+            color: #ffffff; height: 100vh; height: 100dvh; width: 100vw; overflow: hidden;
+            background-color: #1a202c; cursor: default; user-select: none; position: relative; 
         }
+        #content-layer { width: 100%; height: 100%; position: relative; transition: transform 0.5s ease; will-change: transform; }
+        .background-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; transform: scale(1.02); }
+        .bg-image { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; filter: brightness(0.45) saturate(0.6) contrast(1.1); animation: subtlePan 60s infinite alternate ease-in-out; transform: scale(1.1); }
+        .vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.9) 100%); pointer-events: none; }
 
-        /* --- CONTENT LAYER --- */
-        #content-layer {
-            width: 100%; height: 100%; position: relative;
-            transition: transform 0.5s ease; will-change: transform;
-        }
-
-        /* --- BACKGROUND --- */
-        .background-wrapper {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1; overflow: hidden; transform: scale(1.02); 
-        }
-
-        .bg-image {
-            width: 100%; height: 100%;
-            object-fit: cover; object-position: center 60%;
-            filter: brightness(0.45) saturate(0.6) contrast(1.1);
-            animation: subtlePan 60s infinite alternate ease-in-out;
-            transform: scale(1.1);
-        }
-
-        .vignette {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.9) 100%);
-            pointer-events: none;
-        }
-
-        /* --- ALERT OVERLAY --- */
-        body.shift-alert-active::after {
-            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 9999;
-            box-shadow: inset 0 0 0 15px #dc2626, inset 0 0 50px rgba(220, 38, 38, 0.5);
-            animation: borderFlash 1s infinite alternate;
-        }
-
-        /* --- CONTROLS AREA --- */
-        .controls-area {
-            position: absolute; top: 20px; right: 20px;
-            z-index: 60; display: flex; align-items: center; gap: 15px;
-            background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 30px;
-            backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1);
-        }
-        .ctrl-group {
-            display: flex; gap: 10px; align-items: center;
-            border-right: 1px solid rgba(255,255,255,0.2);
-            padding-right: 15px; margin-right: 5px;
-        }
+        /* --- CONTROLS & PROGRESS --- */
+        body.shift-alert-active::after { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; box-shadow: inset 0 0 0 15px #dc2626, inset 0 0 50px rgba(220, 38, 38, 0.5); animation: borderFlash 1s infinite alternate; }
+        .controls-area { position: absolute; top: 20px; right: 20px; z-index: 60; display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 30px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); }
+        .ctrl-group { display: flex; gap: 10px; align-items: center; border-right: 1px solid rgba(255,255,255,0.2); padding-right: 15px; margin-right: 5px; }
         .ctrl-group:last-child { border-right: none; padding-right: 0; margin-right: 0; }
-        .ctrl-btn {
-            color: rgba(255,255,255,0.5); cursor: pointer;
-            font-size: 1.1rem; transition: all 0.2s; position: relative;
-        }
+        .ctrl-btn { color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1.1rem; transition: all 0.2s; }
         .ctrl-btn:hover { color: #fff; transform: scale(1.1); }
+        .progress-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.05); z-index: 50; }
+        .progress-fill { height: 100%; width: 0%; background-image: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%); background-size: 100vw 100%; background-repeat: no-repeat; transition: width 1s linear; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); }
+        .watchdog-indicator { position: absolute; bottom: 15px; right: 15px; width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; box-shadow: 0 0 8px #22c55e; z-index: 55; transition: all 0.3s ease; }
+        .watchdog-indicator.offline { background-color: #ef4444; box-shadow: 0 0 15px #ef4444; animation: blinkFast 1s infinite; }
 
-        /* --- SHIFT PROGRESS BAR --- */
-        .progress-container {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; 
-            background: rgba(255,255,255,0.05); z-index: 50;
-        }
-        .progress-fill {
-            height: 100%; width: 0%;
-            background-image: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%);
-            background-size: 100vw 100%; 
-            background-repeat: no-repeat;
-            transition: width 1s linear;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        /* --- LAYOUT --- */
+        main { height: 100%; width: 100%; display: flex; flex-direction: column; align-items: center; padding: 4vh 3vw 6vh 3vw; }
+        .clock-section { text-align: center; width: 100%; text-shadow: 0 4px 15px rgba(0,0,0,0.8); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* --- CLOCK STABILITY FIX --- */
+        .time-wrapper { 
+            font-size: calc(14vh * var(--clock-scale)); 
+            font-weight: 800; 
+            line-height: 0.9; 
+            display: inline-flex; /* Alterado para inline-flex para centrar melhor */
+            justify-content: center; 
+            align-items: baseline; 
+            cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* FIX 1: Força números com mesma largura */
+            font-variant-numeric: tabular-nums; 
+            position: relative;
         }
         
-        /* --- WATCHDOG --- */
-        .watchdog-indicator {
-            position: absolute; bottom: 15px; right: 15px;
-            width: 8px; height: 8px; border-radius: 50%;
-            background-color: #22c55e;
-            box-shadow: 0 0 8px #22c55e;
-            z-index: 55; transition: all 0.3s ease;
-        }
-        .watchdog-indicator.offline {
-            background-color: #ef4444; box-shadow: 0 0 15px #ef4444;
-            animation: blinkFast 1s infinite;
-        }
-
-        /* --- LAYOUT MAIN --- */
-        main {
-            height: 100%; width: 100%;
-            display: flex; flex-direction: column;
-            align-items: center;
-            padding: 4vh 3vw; padding-bottom: 6vh;
-        }
-
-        /* --- CLOCK --- */
-        .clock-section {
-            text-align: center; width: 100%;
-            text-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            transition: transform 0.3s ease;
-            z-index: 10; position: relative;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .time-wrapper {
-            font-size: calc(14vh * var(--clock-scale));
-            font-weight: 800; line-height: 0.9;
-            display: flex; justify-content: center; align-items: baseline;
-            cursor: pointer; transition: font-family 0.3s ease, font-size 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .date-display {
-            font-size: calc(2.5vh * var(--clock-scale));
-            font-weight: 400; text-transform: uppercase; letter-spacing: 0.3em;
-            margin-top: 1vh; opacity: 0.9;
-            transition: font-size 0.3s ease;
-        }
+        .date-display { font-size: calc(2.5vh * var(--clock-scale)); font-weight: 400; text-transform: uppercase; letter-spacing: 0.3em; margin-top: 1vh; opacity: 0.9; transition: font-size 0.3s ease; }
+        
+        /* Font Styles */
         .font-style-outfit .time-wrapper { font-family: 'Outfit', sans-serif; letter-spacing: -0.03em; }
         .font-style-chakra .time-wrapper { font-family: 'Chakra Petch', sans-serif; letter-spacing: 0em; }
         .font-style-tech .time-wrapper { font-family: 'Share Tech Mono', monospace; letter-spacing: -0.05em; }
         .font-style-orbit .time-wrapper { font-family: 'Orbitron', sans-serif; letter-spacing: 0.05em; font-size: calc(11vh * var(--clock-scale)); }
-        .colon { animation: pulse 2s infinite ease-in-out; margin: 0 0.5rem; position: relative; top: -1vh; }
-        .seconds { font-size: calc(4vh * var(--clock-scale)); font-weight: 400; opacity: 0.8; margin-left: 1vh; }
+        
+        .colon { animation: pulse 2s infinite ease-in-out; margin: 0 0.2rem; position: relative; top: -1vh; }
+        
+        .seconds { 
+            font-size: calc(4vh * var(--clock-scale)); 
+            font-weight: 400; 
+            opacity: 0.8; 
+            margin-left: 1vh;
+            /* FIX 2: Largura fixa e alinhamento */
+            display: inline-block;
+            width: 1.4em; /* Reserva espaço para "55" */
+            text-align: left; /* Garante que cresce para a direita sem empurrar a esquerda */
+        }
 
-        /* --- CENTER AREA --- */
-        .shift-anim-container {
-            flex-grow: 1; width: 100%;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            gap: 30px; opacity: 0;
-            transition: opacity 0.5s ease;
-            pointer-events: none;
-        }
+        .shift-anim-container { flex-grow: 1; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 30px; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
         body.shift-alert-active .shift-anim-container { opacity: 1; }
-        .shift-title {
-            font-size: 2.5rem; font-weight: 800; text-transform: uppercase; letter-spacing: 4px;
-            color: #ef4444; text-shadow: 0 0 20px rgba(220, 38, 38, 0.8);
-            background: rgba(0,0,0,0.4); padding: 10px 40px; border-radius: 50px;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            transform: scale(0.9); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        .shift-title { font-size: 2.5rem; font-weight: 800; text-transform: uppercase; letter-spacing: 4px; color: #ef4444; text-shadow: 0 0 20px rgba(220, 38, 38, 0.8); background: rgba(0,0,0,0.4); padding: 10px 40px; border-radius: 50px; border: 1px solid rgba(239, 68, 68, 0.3); transform: scale(0.9); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         body.shift-alert-active .shift-title { transform: scale(1); animation: textPulse 1.5s infinite alternate; }
-        .cards-row { display: flex; align-items: center; justify-content: center; gap: 50px; perspective: 1000px; }
-        .team-card {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2); padding: 25px 40px;
-            border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px;
-            min-width: 220px; transform: scale(0.9); transition: transform 0.5s ease, opacity 0.5s ease;
-        }
+        .cards-row { display: flex; align-items: center; justify-content: center; gap: 50px; }
+        .team-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); padding: 25px 40px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 220px; transform: scale(0.9); opacity: 0; transition: all 0.5s ease; }
         .team-label { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.9; font-weight: 600; }
         .team-icon { font-size: 3rem; }
-        .outgoing { opacity: 0; transform: translateX(30px); }
-        .incoming { opacity: 0; transform: translateX(-30px); }
+        .outgoing { transform: translateX(30px); }
+        .incoming { transform: translateX(-30px); }
         .sync-icon { font-size: 2.5rem; opacity: 0; color: #fbbf24; }
         body.shift-alert-active .outgoing { opacity: 1; animation: driftLeft 3s ease-in-out infinite alternate; }
         body.shift-alert-active .incoming { opacity: 1; background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.5); box-shadow: 0 0 30px rgba(255, 255, 255, 0.1); animation: pulseCard 2s ease-in-out infinite alternate; }
         body.shift-alert-active .sync-icon { opacity: 0.8; animation: spinSlow 3s infinite linear; }
 
-        /* --- WEATHER --- */
+        /* --- WEATHER SECTION & ATMOSPHERE --- */
         .weather-section { margin-bottom: 1vh; display: flex; justify-content: center; width: 100%; }
-        .glass-card {
+        .glass-card { 
             background: rgba(15, 15, 25, 0.65); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px;
             padding: 20px 30px; display: flex; align-items: stretch; gap: 40px; 
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-            width: 100%; max-width: 1100px;
+            width: 100%; max-width: 1100px; overflow: hidden; position: relative;
         }
-        .weather-current-col {
-            display: flex; flex-direction: row; align-items: center; gap: 20px; padding-right: 30px;
-            border-right: 1px solid rgba(255,255,255,0.15); min-width: 250px; justify-content: center;
+
+        .weather-current-col { 
+            display: flex; flex-direction: row; align-items: center; gap: 30px; 
+            padding-right: 30px; border-right: 1px solid rgba(255,255,255,0.15); 
+            min-width: 280px; justify-content: center;
+            position: relative; 
+            overflow: hidden; 
+            border-radius: 15px 0 0 15px; 
+            margin: -20px 0 -20px -30px; padding: 20px 30px 20px 30px; 
         }
-        .main-icon-wrapper i { font-size: 3.5rem; filter: drop-shadow(0 0 15px rgba(255,255,255,0.3)); animation: floatIcon 4s ease-in-out infinite; }
-        .temp-block { text-align: left; display: flex; flex-direction: column; justify-content: center; }
+
+        /* --- ATMOSPHERIC EFFECTS (CSS ONLY) --- */
+        .atmos-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0; transition: opacity 1s ease; }
+        .bg-rain .atmos-layer { opacity: 1; }
+        .bg-rain .atmos-layer::before {
+            content: ''; position: absolute; top: -100%; left: 0; width: 100%; height: 200%;
+            background: repeating-linear-gradient(transparent 0, transparent 4px, rgba(147, 197, 253, 0.15) 4px, rgba(147, 197, 253, 0.2) 6px);
+            animation: atmosRain 0.8s linear infinite;
+        }
+        .bg-sun .atmos-layer { opacity: 1; }
+        .bg-sun .atmos-layer::before {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 150%; height: 150%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0) 70%);
+            animation: atmosPulse 4s infinite alternate ease-in-out;
+        }
+        .bg-cloud .atmos-layer { opacity: 1; }
+        .bg-cloud .atmos-layer::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 200%; height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+            animation: atmosFog 10s infinite linear;
+        }
+        .bg-storm .atmos-layer { opacity: 1; animation: atmosFlash 5s infinite; background: rgba(0,0,0,0); }
+        .bg-storm .atmos-layer::before {
+            content: ''; position: absolute; top: -100%; left: 0; width: 100%; height: 200%;
+            background: repeating-linear-gradient(transparent 0, transparent 4px, rgba(200, 200, 255, 0.2) 4px, rgba(200, 200, 255, 0.3) 6px);
+            animation: atmosRain 0.5s linear infinite; 
+        }
+        @keyframes atmosRain { 0% { transform: translateY(0); } 100% { transform: translateY(50%); } }
+        @keyframes atmosPulse { 0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.5; } 100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; } }
+        @keyframes atmosFog { 0% { transform: translateX(-50%); } 100% { transform: translateX(0%); } }
+        @keyframes atmosFlash { 0%, 92%, 96%, 100% { background: rgba(255,255,255,0); } 93% { background: rgba(255,255,255,0.15); } 94% { background: rgba(255,255,255,0); } 95% { background: rgba(255,255,255,0.2); } }
+
+        .main-icon-wrapper, .temp-block { z-index: 2; position: relative; }
+
+        /* --- SVG STYLES --- */
+        .main-icon-wrapper { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; }
+        .weather-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 15px rgba(255,255,255,0.1)); }
+        .svg-sun-rays { transform-origin: center; animation: svgSpin 15s linear infinite; color: var(--sun-color); }
+        .svg-sun-core { fill: url(#sunGradient); }
+        .svg-cloud-base { fill: url(#cloudGradient); animation: svgFloat 4s ease-in-out infinite alternate; }
+        .svg-cloud-dark { fill: #64748b; animation: svgFloat 4s ease-in-out infinite alternate-reverse; }
+        .svg-rain-drop { fill: var(--rain-color); animation: svgRainFall 1.2s linear infinite; opacity: 0; }
+        .svg-rain-drop:nth-child(2) { animation-delay: 0.4s; }
+        .svg-rain-drop:nth-child(3) { animation-delay: 0.8s; }
+        .svg-lightning { fill: var(--thunder-color); animation: svgFlash 2s ease-in-out infinite; transform-origin: center top; }
+        .svg-moon { fill: var(--moon-color); animation: svgFloat 5s ease-in-out infinite alternate; }
+        
+        @keyframes svgSpin { 100% { transform: rotate(360deg); } }
+        @keyframes svgFloat { 0% { transform: translateY(0); } 100% { transform: translateY(-5px); } }
+        @keyframes svgRainFall { 0% { transform: translateY(-10px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(15px); opacity: 0; } }
+        @keyframes svgFlash { 0%, 90%, 100% { opacity: 0; transform: scale(0.9); } 92%, 96% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 10px var(--thunder-color)); } }
+
+        .temp-block { text-align: left; display: flex; flex-direction: column; justify-content: center; transition: all 0.3s; padding: 5px 15px; border-radius: 10px; }
         .city-name { font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; opacity: 0.6; margin-bottom: 2px;}
         .temp-line { display: flex; align-items: baseline; gap: 10px; }
         .temp-big { font-size: 3rem; font-weight: 700; line-height: 1; }
         .condition { font-size: 0.9rem; font-weight: 300; opacity: 0.9; margin-bottom: 8px;}
         .operational-data { display: grid; grid-template-columns: auto auto; gap: 8px 15px; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; }
-        .op-item { display: flex; align-items: center; gap: 6px; opacity: 0.8; }
+        .op-item { display: flex; align-items: center; gap: 6px; opacity: 0.8; transition: all 0.3s; padding: 2px 5px; border-radius: 5px; }
         .op-item i { width: 16px; text-align: center; color: #93c5fd; }
         .op-val { font-weight: 600; color: #fff; }
+
+        /* ALERT STYLES */
+        .alert-heat-active { background: rgba(239, 68, 68, 0.2); box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); border: 1px solid rgba(239, 68, 68, 0.5); }
+        .alert-heat-active .temp-big, .alert-heat-active .city-name { color: #ef4444 !important; text-shadow: 0 0 10px rgba(220, 38, 38, 0.8); }
+        .alert-heat-active .temp-big { animation: pulseText 1s infinite alternate; }
+        .alert-wind-active { background: rgba(249, 115, 22, 0.2); border: 1px solid rgba(249, 115, 22, 0.5); }
+        .alert-wind-active i, .alert-wind-active .op-val { color: #f97316 !important; text-shadow: 0 0 10px rgba(249, 115, 22, 0.8); }
+        @keyframes animWindShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+        /* FORECAST SECTION */
         .weather-forecast-col { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; overflow: hidden; text-align: center; }
         .forecast-divider { border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 15px; margin-bottom: 15px; }
         .forecast-section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.5; margin-bottom: 8px; font-weight: 600; width: 100%; }
-        .scroll-container {
-            display: flex; justify-content: space-between; gap: 10px; overflow-x: auto;
-            scrollbar-width: none; mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
-        }
+        .scroll-container { display: flex; justify-content: space-between; gap: 10px; overflow-x: auto; scrollbar-width: none; mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%); -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%); }
         .scroll-container::-webkit-scrollbar { display: none; }
         .forecast-unit { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 60px; }
         .f-time { font-size: 0.8rem; opacity: 0.7; margin-bottom: 5px; }
-        .f-icon { font-size: 1.2rem; margin-bottom: 5px; opacity: 0.9; }
+        .f-icon { font-size: 1.4rem; margin-bottom: 5px; opacity: 1; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2)); }
+        .f-icon.fa-sun { color: var(--sun-color); }
+        .f-icon.fa-cloud-sun, .f-icon.fa-cloud { color: #cbd5e1; }
+        .f-icon.fa-cloud-rain, .f-icon.fa-umbrella { color: var(--rain-color); }
+        .f-icon.fa-bolt { color: var(--thunder-color); }
+        .f-icon.fa-moon { color: var(--moon-color); }
         .f-temp { font-weight: 600; font-size: 0.9rem; }
         .f-temp.min-temp { font-size: 0.75rem; opacity: 0.6; font-weight: 400; }
 
         @keyframes subtlePan { 0% { transform: scale(1.1) translateY(0); } 100% { transform: scale(1.15) translateY(-2%); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        @keyframes floatIcon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
         @keyframes borderFlash { from { box-shadow: inset 0 0 0 10px #b91c1c, inset 0 0 20px rgba(185, 28, 28, 0.5); } to { box-shadow: inset 0 0 0 25px #ef4444, inset 0 0 80px rgba(239, 68, 68, 0.8); } }
         @keyframes spinSlow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes blinkFast { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes driftLeft { 0% { transform: translateX(0) scale(0.9); opacity: 0.8; } 100% { transform: translateX(-15px) scale(0.85); opacity: 0.5; } }
         @keyframes pulseCard { 0% { transform: translateX(0) scale(1); } 100% { transform: translateX(0) scale(1.05); } }
         @keyframes textPulse { 0% { text-shadow: 0 0 20px rgba(220, 38, 38, 0.5); transform: scale(1); } 100% { text-shadow: 0 0 40px rgba(220, 38, 38, 1); transform: scale(1.05); } }
+        @keyframes pulseText { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.05); opacity: 0.8; } }
 
         @media (max-width: 900px) {
             .glass-card { flex-direction: column; padding: 20px; gap: 20px; }
-            .weather-current-col { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.15); padding-right: 0; padding-bottom: 20px; width: 100%; flex-direction: column; text-align: center; }
+            .weather-current-col { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.15); padding-right: 0; padding-bottom: 20px; width: 100%; flex-direction: column; text-align: center; margin: 0; padding: 0 0 20px 0; border-radius: 0; }
             .temp-block { align-items: center; }
             .operational-data { justify-content: center; }
             .scroll-container { justify-content: flex-start; gap: 20px; }
@@ -234,98 +226,77 @@
             .team-label { font-size: 0.7rem; }
             .shift-title { font-size: 1.5rem; padding: 10px 20px; }
             .cards-row { gap: 20px; }
+            .main-icon-wrapper { width: 80px; height: 80px; }
         }
     </style>
 </head>
 <body id="body-el" class="font-style-outfit">
 
+    <svg width="0" height="0" style="position:absolute">
+        <defs>
+            <linearGradient id="sunGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" /><stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" /></linearGradient>
+            <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#cbd5e1;stop-opacity:1" /><stop offset="100%" style="stop-color:#94a3b8;stop-opacity:1" /></linearGradient>
+        </defs>
+    </svg>
+
     <div id="content-layer">
-        
         <div class="background-wrapper">
-            <img src="castle.jpg" alt="Castelo de Leiria" class="bg-image">
+            <img src="castle.jpg" alt="Background" class="bg-image">
             <div class="vignette"></div>
         </div>
 
         <div class="controls-area">
             <div class="ctrl-group">
-                <i class="fa-solid fa-minus ctrl-btn" onclick="adjustClockScale(-0.1)" title="Diminuir Relógio"></i>
+                <i class="fa-solid fa-minus ctrl-btn" onclick="adjustClockScale(-0.1)"></i>
                 <i class="fa-solid fa-text-height" style="font-size: 0.8rem; opacity: 0.5;"></i>
-                <i class="fa-solid fa-plus ctrl-btn" onclick="adjustClockScale(0.1)" title="Aumentar Relógio"></i>
+                <i class="fa-solid fa-plus ctrl-btn" onclick="adjustClockScale(0.1)"></i>
             </div>
             <div class="ctrl-group">
-                <div class="ctrl-btn" onclick="cycleFonts()" title="Mudar Estilo de Fonte">
-                    <i class="fa-solid fa-font"></i>
-                </div>
+                <div class="ctrl-btn" onclick="cycleFonts()"><i class="fa-solid fa-font"></i></div>
             </div>
-            <div class="ctrl-btn" onclick="toggleFullScreen()" title="Ecrã Inteiro">
-                <i class="fa-solid fa-expand" id="fs-icon"></i>
-            </div>
+            <div class="ctrl-btn" onclick="toggleFullScreen()"><i class="fa-solid fa-expand" id="fs-icon"></i></div>
         </div>
 
-        <div class="watchdog-indicator" id="watchdog" title="Estado do Sistema"></div>
-        
-        <div class="progress-container" title="Progresso do Turno">
-            <div class="progress-fill" id="shift-progress"></div>
-        </div>
+        <div class="watchdog-indicator" id="watchdog"></div>
+        <div class="progress-container"><div class="progress-fill" id="shift-progress"></div></div>
 
         <main>
             <div class="clock-section">
-                <div class="time-wrapper" ondblclick="triggerShiftAlert()" title="Duplo clique para testar alerta">
+                <div class="time-wrapper" ondblclick="triggerShiftAlert()">
                     <span id="h">--</span><span class="colon">:</span><span id="m">--</span><span class="seconds" id="s">--</span>
                 </div>
                 <div id="date-full" class="date-display">A carregar...</div>
             </div>
 
             <div class="shift-anim-container">
-                <div class="shift-title">
-                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:10px"></i>
-                    Mudança de Turno
-                    <i class="fa-solid fa-triangle-exclamation" style="margin-left:10px"></i>
-                </div>
+                <div class="shift-title"><i class="fa-solid fa-triangle-exclamation"></i> Mudança de Turno <i class="fa-solid fa-triangle-exclamation"></i></div>
                 <div class="cards-row">
                     <div class="team-card outgoing">
-                        <i class="fa-solid fa-users-slash team-icon"></i>
-                        <div class="team-label">Piquete de Saída</div>
-                        <i class="fa-solid fa-arrow-left-long" style="margin-top:5px; opacity: 0.7;"></i>
+                        <i class="fa-solid fa-users-slash team-icon"></i><div class="team-label">Piquete de Saída</div><i class="fa-solid fa-arrow-left-long" style="margin-top:5px; opacity: 0.7;"></i>
                     </div>
                     <i class="fa-solid fa-arrows-rotate sync-icon"></i>
                     <div class="team-card incoming">
-                        <i class="fa-solid fa-users team-icon"></i>
-                        <div class="team-label">Piquete de Entrada</div>
-                        <i class="fa-solid fa-check" style="margin-top:5px"></i>
+                        <i class="fa-solid fa-users team-icon"></i><div class="team-label">Piquete de Entrada</div><i class="fa-solid fa-check" style="margin-top:5px"></i>
                     </div>
                 </div>
             </div>
 
             <div class="weather-section">
                 <div class="glass-card">
-                    <div class="weather-current-col">
+                    <div class="weather-current-col" id="weather-current-bg">
+                        <div class="atmos-layer"></div>
                         <div class="main-icon-wrapper" id="main-icon">
-                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; opacity: 0.5;"></i>
+                           <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; opacity: 0.5;"></i>
                         </div>
-                        <div class="temp-block">
+                        <div class="temp-block" id="temp-block-container">
                             <div class="city-name"><i class="fa-solid fa-location-dot"></i> Leiria, PT</div>
-                            <div class="temp-line">
-                                <div class="temp-big"><span id="temp-val">--</span>°</div>
-                            </div>
+                            <div class="temp-line"><div class="temp-big"><span id="temp-val">--</span>°</div></div>
                             <div class="condition" id="cond-text">A iniciar...</div>
                             <div class="operational-data">
-                                <div class="op-item" title="Vento">
-                                    <i class="fa-solid fa-wind"></i> 
-                                    <span class="op-val" id="wind-txt">-- km/h</span>
-                                </div>
-                                <div class="op-item" title="Direção Vento">
-                                    <i class="fa-regular fa-compass"></i>
-                                    <span class="op-val" id="wind-dir">--</span>
-                                </div>
-                                <div class="op-item" title="Nascer do Sol">
-                                    <i class="fa-solid fa-sun" style="color:#fbbf24"></i>
-                                    <span class="op-val" id="sunrise-txt">--:--</span>
-                                </div>
-                                <div class="op-item" title="Pôr do Sol">
-                                    <i class="fa-solid fa-moon" style="color:#a78bfa"></i>
-                                    <span class="op-val" id="sunset-txt">--:--</span>
-                                </div>
+                                <div class="op-item" id="wind-item"><i class="fa-solid fa-wind"></i> <span class="op-val" id="wind-txt">-- km/h</span></div>
+                                <div class="op-item"><i class="fa-regular fa-compass"></i><span class="op-val" id="wind-dir">--</span></div>
+                                <div class="op-item"><i class="fa-solid fa-sun" style="color:var(--sun-color)"></i><span class="op-val" id="sunrise-txt">--:--</span></div>
+                                <div class="op-item"><i class="fa-solid fa-moon" style="color:var(--moon-color)"></i><span class="op-val" id="sunset-txt">--:--</span></div>
                             </div>
                         </div>
                     </div>
@@ -346,229 +317,125 @@
     </div>
 
     <script>
-        // --- CONFIG ---
         const fontClasses = ['font-style-outfit', 'font-style-chakra', 'font-style-tech', 'font-style-orbit'];
-        let currentFontIdx = 0;
-        let clockScale = 2.0; // VALOR INICIAL NO MÁXIMO
-
+        let currentFontIdx = 0, clockScale = 2.0;
         function loadPrefs() {
-            const savedFont = localStorage.getItem('cmos_font_pref');
-            if(savedFont !== null) { currentFontIdx = parseInt(savedFont); applyFont(); }
-            const savedScale = localStorage.getItem('cmos_scale_pref');
-            if(savedScale !== null) { clockScale = parseFloat(savedScale); applyScale(); }
+            const savedFont = localStorage.getItem('cmos_font_pref'); if(savedFont !== null) { currentFontIdx = parseInt(savedFont); applyFont(); }
+            const savedScale = localStorage.getItem('cmos_scale_pref'); if(savedScale !== null) { clockScale = parseFloat(savedScale); applyScale(); }
         }
-
-        // --- FONTS & SCALE ---
-        function cycleFonts() {
-            currentFontIdx = (currentFontIdx + 1) % fontClasses.length;
-            applyFont();
-            localStorage.setItem('cmos_font_pref', currentFontIdx);
-        }
-        function applyFont() {
-            document.body.classList.remove(...fontClasses);
-            document.body.classList.add(fontClasses[currentFontIdx]);
-        }
-        function adjustClockScale(delta) {
-            clockScale += delta;
-            if(clockScale < 0.5) clockScale = 0.5;
-            if(clockScale > 2.0) clockScale = 2.0;
-            applyScale();
-            localStorage.setItem('cmos_scale_pref', clockScale);
-        }
-        function applyScale() {
-            document.documentElement.style.setProperty('--clock-scale', clockScale);
-        }
+        function cycleFonts() { currentFontIdx = (currentFontIdx + 1) % fontClasses.length; applyFont(); localStorage.setItem('cmos_font_pref', currentFontIdx); }
+        function applyFont() { document.body.classList.remove(...fontClasses); document.body.classList.add(fontClasses[currentFontIdx]); }
+        function adjustClockScale(delta) { clockScale = Math.max(0.5, Math.min(2.0, clockScale + delta)); applyScale(); localStorage.setItem('cmos_scale_pref', clockScale); }
+        function applyScale() { document.documentElement.style.setProperty('--clock-scale', clockScale); }
+        function toggleFullScreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); document.getElementById('fs-icon').classList.replace('fa-expand', 'fa-compress'); } else { if (document.exitFullscreen) { document.exitFullscreen(); document.getElementById('fs-icon').classList.replace('fa-compress', 'fa-expand'); } } }
+        setInterval(() => { const layer = document.getElementById('content-layer'); layer.style.transform = `translate(${Math.floor(Math.random() * 7) - 3}px, ${Math.floor(Math.random() * 7) - 3}px)`; }, 300000);
         loadPrefs();
 
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-                document.getElementById('fs-icon').classList.remove('fa-expand');
-                document.getElementById('fs-icon').classList.add('fa-compress');
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                    document.getElementById('fs-icon').classList.add('fa-expand');
-                    document.getElementById('fs-icon').classList.remove('fa-compress');
-                }
-            }
-        }
-
-        // --- PIXEL SHIFT ---
-        function performPixelShift() {
-            const layer = document.getElementById('content-layer');
-            const x = Math.floor(Math.random() * 7) - 3; 
-            const y = Math.floor(Math.random() * 7) - 3;
-            layer.style.transform = `translate(${x}px, ${y}px)`;
-        }
-        setInterval(performPixelShift, 300000);
-
-        // --- ALERT ---
-        let alertTimeout = null;
-        let isAlertActive = false;
-        function triggerShiftAlert() {
-            if (isAlertActive) return; 
-            isAlertActive = true;
-            document.body.classList.add('shift-alert-active');
-            if(alertTimeout) clearTimeout(alertTimeout);
-            alertTimeout = setTimeout(() => {
-                document.body.classList.remove('shift-alert-active');
-                isAlertActive = false;
-            }, 60000);
-        }
-
-        // --- CLOCK & PROGRESS BAR ---
+        let alertTimeout = null, isAlertActive = false;
+        function triggerShiftAlert() { if (isAlertActive) return; isAlertActive = true; document.body.classList.add('shift-alert-active'); clearTimeout(alertTimeout); alertTimeout = setTimeout(() => { document.body.classList.remove('shift-alert-active'); isAlertActive = false; }, 60000); }
         function updateClock() {
             const now = new Date();
-            const h = String(now.getHours()).padStart(2, '0');
-            const m = String(now.getMinutes()).padStart(2, '0');
-            const s = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('h').textContent = h;
-            document.getElementById('m').textContent = m;
-            document.getElementById('s').textContent = s;
-            
-            // Check shift change
-            if (m === '00' && s === '00') {
-                if (h === '08' || h === '20') triggerShiftAlert();
-            }
-
-            // Date
-            const options = { weekday: 'long', day: 'numeric', month: 'long' };
-            let dateStr = now.toLocaleDateString('pt-PT', options);
-            dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
-            document.getElementById('date-full').textContent = dateStr;
-
-            // --- SHIFT PROGRESS LOGIC ---
-            // Turnos: 08:00 -> 20:00 (Dia) e 20:00 -> 08:00 (Noite)
+            const h = String(now.getHours()).padStart(2, '0'), m = String(now.getMinutes()).padStart(2, '0'), s = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('h').textContent = h; document.getElementById('m').textContent = m; document.getElementById('s').textContent = s;
+            if (m === '00' && s === '00' && (h === '08' || h === '20')) triggerShiftAlert();
+            let dateStr = now.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
+            document.getElementById('date-full').textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
             const currentTotalSeconds = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-            const shiftDuration = 12 * 3600; // 12h em segundos
-            
-            let elapsed = 0;
-            // 08:00 (28800s) até 20:00 (72000s)
-            const startDay = 8 * 3600; 
-            const startNight = 20 * 3600;
-
-            if (currentTotalSeconds >= startDay && currentTotalSeconds < startNight) {
-                // Turno Dia
-                elapsed = currentTotalSeconds - startDay;
-            } else {
-                // Turno Noite (cuidado com meia noite)
-                if (currentTotalSeconds >= startNight) {
-                    elapsed = currentTotalSeconds - startNight;
-                } else {
-                    // Já passou da meia noite (ex: 02:00)
-                    elapsed = (24 * 3600 - startNight) + currentTotalSeconds;
-                }
-            }
-            
-            let percent = (elapsed / shiftDuration) * 100;
-            if(percent > 100) percent = 100;
-            
-            const bar = document.getElementById('shift-progress');
-            bar.style.width = percent + "%";
+            const startDay = 8 * 3600, startNight = 20 * 3600, shiftDuration = 12 * 3600;
+            let elapsed = (currentTotalSeconds >= startDay && currentTotalSeconds < startNight) ? currentTotalSeconds - startDay : (currentTotalSeconds >= startNight ? currentTotalSeconds - startNight : (24 * 3600 - startNight) + currentTotalSeconds);
+            document.getElementById('shift-progress').style.width = Math.min((elapsed / shiftDuration) * 100, 100) + "%";
         }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // --- WATCHDOG ---
+        setInterval(updateClock, 1000); updateClock();
         const watchdog = document.getElementById('watchdog');
-        function setSystemStatus(isOnline) {
-            if(isOnline) {
-                watchdog.classList.remove('offline');
-                watchdog.title = "Sistema Online";
-            } else {
-                watchdog.classList.add('offline');
-                watchdog.title = "ERRO: Offline";
-            }
-        }
-        window.addEventListener('offline', () => setSystemStatus(false));
-        window.addEventListener('online', () => setSystemStatus(true));
+        function setSystemStatus(isOnline) { watchdog.classList.toggle('offline', !isOnline); }
+        window.addEventListener('offline', () => setSystemStatus(false)); window.addEventListener('online', () => setSystemStatus(true));
 
-        // --- WEATHER API ---
         const API_URL = "https://api.open-meteo.com/v1/forecast?latitude=39.74&longitude=-8.81&current=temperature_2m,weather_code,is_day,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=7";
-        const weatherMap = {
-            0: { icon: 'fa-sun', text: 'Limpo' }, 1: { icon: 'fa-cloud-sun', text: 'Pouco nublado' },
-            2: { icon: 'fa-cloud-sun', text: 'Parcial nublado' }, 3: { icon: 'fa-cloud', text: 'Nublado' },
-            45: { icon: 'fa-smog', text: 'Nevoeiro' }, 48: { icon: 'fa-smog', text: 'Nevoeiro' },
-            51: { icon: 'fa-cloud-rain', text: 'Chuvisco' }, 53: { icon: 'fa-cloud-rain', text: 'Chuvisco' },
-            61: { icon: 'fa-umbrella', text: 'Chuva' }, 63: { icon: 'fa-umbrella', text: 'Chuva' },
-            80: { icon: 'fa-cloud-showers-heavy', text: 'Aguaceiros' }, 95: { icon: 'fa-bolt', text: 'Trovoada' }
+
+        const svgTemplates = {
+            sun: `<svg class="weather-svg" viewBox="0 0 64 64"><g class="svg-sun-rays"><path fill="currentColor" d="M32 10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2s-2 .9-2 2v4c0 1.1.9 2 2 2zm0 44c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2s2-.9 2-2v-4c0-1.1-.9-2-2-2zm22-24c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2s.9 2 2 2h4c1.1 0 2-.9 2-2zM14 32c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2s.9 2 2 2h4c1.1 0 2-.9 2-2zm35.5-15.6c.8-.8.8-2 0-2.8l-2.8-2.8c-.8-.8-2-.8-2.8 0l-2.8 2.8c-.8.8-.8 2 0 2.8l2.8 2.8c.8.8 2 .8 2.8 0l2.8-2.8zm-28 28c.8-.8.8-2 0-2.8l-2.8-2.8c-.8-.8-2-.8-2.8 0l-2.8 2.8c-.8.8-.8 2 0 2.8l2.8 2.8c.8.8 2 .8 2.8 0l2.8-2.8zm0-28c-.8-.8-2-.8-2.8 0l-2.8 2.8c-.8.8-.8 2 0 2.8l2.8 2.8c.8.8 2 .8 2.8 0l2.8-2.8c.8-.8.8-2 0-2.8L21.5 16.4zm28 28c-.8-.8-2-.8-2.8 0l-2.8 2.8c-.8.8-.8 2 0 2.8l2.8 2.8c.8.8 2 .8 2.8 0l2.8-2.8c.8-.8.8-2 0-2.8L49.5 44.4z"/></g><circle class="svg-sun-core" cx="32" cy="32" r="10"/></svg>`,
+            moon: `<svg class="weather-svg" viewBox="0 0 64 64"><path class="svg-moon" d="M42,18c-10,0-18,8-18,18s8,18,18,18c2.3,0,4.5-0.4,6.6-1.2C45.8,58.6,39.3,62,32,62C15.4,62,2,48.6,2,32 C2,15.4,15.4,2,32,2c7.3,0,13.8,3.4,18.6,8.8C46.5,17.6,44.3,18,42,18z"/></svg>`,
+            cloud: `<svg class="weather-svg" viewBox="0 0 64 64"><path class="svg-cloud-base" d="M48,48H16c-6.6,0-12-5.4-12-12s5.4-12,12-12c0.5,0,1,0,1.5,0.1C19.6,16.8,26.2,12,34,12 c8.8,0,16,7.2,16,16c0,0.6,0,1.1-0.1,1.7C55.1,31.1,58,35.2,58,40C58,44.4,53.6,48,48,48z"/></svg>`,
+            cloudSun: `<svg class="weather-svg" viewBox="0 0 64 64"><g class="svg-sun-rays" style="transform-origin: 44px 20px; transform: scale(0.7) translate(10px, -10px);"><path fill="currentColor" d="M32 10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2s-2 .9-2 2v4c0 1.1.9 2 2 2zm0 44c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2s2-.9 2-2v-4c0-1.1-.9-2-2-2zm22-24c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2s.9 2 2 2h4c1.1 0 2-.9 2-2zM14 32c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2s.9 2 2 2h4c1.1 0 2-.9 2-2zm35.5-15.6c.8-.8.8-2 0-2.8l-2.8-2.8c-.8-.8-2-.8-2.8 0l-2.8 2.8c-.8.8-.8 2 0 2.8l2.8 2.8c.8.8 2 .8 2.8 0l2.8-2.8zm-28 28c.8-.8.8-2 0-2.8l-2.8-2.8c-.8-.8-2-.8-2.8 0l-2.8 2.8c-.8.8-.8 2 0 2.8l2.8 2.8c.8.8 2 .8 2.8 0l2.8-2.8zm0-28c-.8-.8-2-.8-2.8 0l-2.8 2.8c-.8.8-.8 2 0 2.8l2.8 2.8c.8.8 2 .8 2.8 0l2.8-2.8c.8-.8.8-2 0-2.8L21.5 16.4zm28 28c-.8-.8-2-.8-2.8 0l-2.8 2.8c-.8.8-.8 2 0 2.8l2.8 2.8c.8.8 2 .8 2.8 0l2.8-2.8c.8-.8.8-2 0-2.8L49.5 44.4z"/></g><circle class="svg-sun-core" cx="44" cy="20" r="7" /><path class="svg-cloud-base" d="M44,52H16c-6.6,0-12-5.4-12-12s5.4-12,12-12c0.5,0,1,0,1.5,0.1C19.6,20.8,26.2,16,34,16 c8.8,0,16,7.2,16,16c0,0.6,0,1.1-0.1,1.7C55.1,35.1,58,39.2,58,44C58,48.4,53.6,52,48,52z"/></svg>`,
+            cloudMoon: `<svg class="weather-svg" viewBox="0 0 64 64"><path class="svg-moon" d="M44,10c-7,0-12.8,5.7-12.8,12.8c0,0.5,0,1,0.1,1.5C29.5,22.5,27.3,21,25,21c-5,0-9,4-9,9s4,9,9,9h19 c5,0,9-4,9-9S49,21,44,21c-1.2,0-2.3,0.2-3.4,0.7C43.2,18.3,44,14.3,44,10z" style="transform: scale(1.2) translate(-5px, -5px);"/><path class="svg-cloud-base" d="M44,52H16c-6.6,0-12-5.4-12-12s5.4-12,12-12c0.5,0,1,0,1.5,0.1C19.6,20.8,26.2,16,34,16 c8.8,0,16,7.2,16,16c0,0.6,0,1.1-0.1,1.7C55.1,35.1,58,39.2,58,44C58,48.4,53.6,52,48,52z"/></svg>`,
+            rain: `<svg class="weather-svg" viewBox="0 0 64 64"><path class="svg-cloud-base" d="M48,44H16c-6.6,0-12-5.4-12-12s5.4-12,12-12c0.5,0,1,0,1.5,0.1C19.6,12.8,26.2,8,34,8 c8.8,0,16,7.2,16,16c0,0.6,0,1.1-0.1,1.7C55.1,27.1,58,31.2,58,36C58,40.4,53.6,44,48,44z"/><g class="svg-rain-drops"><path class="svg-rain-drop" d="M20,48c0,0,0-2,2-4s2,4,2,4s0,2-2,2S20,48,20,48z"/><path class="svg-rain-drop" d="M30,48c0,0,0-2,2-4s2,4,2,4s0,2-2,2S30,48,30,48z"/><path class="svg-rain-drop" d="M40,48c0,0,0-2,2-4s2,4,2,4s0,2-2,2S40,48,40,48z"/></g></svg>`,
+            thunder: `<svg class="weather-svg" viewBox="0 0 64 64"><path class="svg-cloud-dark" d="M48,42H16c-6.6,0-12-5.4-12-12s5.4-12,12-12c0.5,0,1,0,1.5,0.1C19.6,10.8,26.2,6,34,6 c8.8,0,16,7.2,16,16c0,0.6,0,1.1-0.1,1.7C55.1,25.1,58,29.2,58,34C58,38.4,53.6,42,48,42z"/><polygon class="svg-lightning" points="32,36 24,52 30,52 26,62 38,48 32,48"/></svg>`
         };
 
-        function degToCompass(num) {
-            const val = Math.floor((num / 22.5) + 0.5);
-            const arr = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-            return arr[(val % 16)];
-        }
-        function formatTimeISO(isoString) {
-            if(!isoString) return "--:--";
-            const d = new Date(isoString);
-            return String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');
-        }
+        const weatherMap = {
+            0: { svg: 'sun', fa: 'fa-sun', text: 'Limpo', bgClass: 'bg-sun' },
+            1: { svg: 'cloudSun', fa: 'fa-cloud-sun', text: 'Pouco nublado', bgClass: 'bg-sun' },
+            2: { svg: 'cloudSun', fa: 'fa-cloud-sun', text: 'Parcial nublado', bgClass: 'bg-cloud' },
+            3: { svg: 'cloud', fa: 'fa-cloud', text: 'Nublado', bgClass: 'bg-cloud' },
+            45: { svg: 'cloud', fa: 'fa-smog', text: 'Nevoeiro', bgClass: 'bg-cloud' }, 48: { svg: 'cloud', fa: 'fa-smog', text: 'Nevoeiro', bgClass: 'bg-cloud' },
+            51: { svg: 'rain', fa: 'fa-cloud-rain', text: 'Chuvisco', bgClass: 'bg-rain' }, 53: { svg: 'rain', fa: 'fa-cloud-rain', text: 'Chuvisco', bgClass: 'bg-rain' },
+            61: { svg: 'rain', fa: 'fa-umbrella', text: 'Chuva', bgClass: 'bg-rain' }, 63: { svg: 'rain', fa: 'fa-umbrella', text: 'Chuva', bgClass: 'bg-rain' },
+            80: { svg: 'rain', fa: 'fa-cloud-showers-heavy', text: 'Aguaceiros', bgClass: 'bg-rain' },
+            95: { svg: 'thunder', fa: 'fa-bolt', text: 'Trovoada', bgClass: 'bg-storm' }
+        };
+
+        function degToCompass(num) { const val = Math.floor((num / 22.5) + 0.5); const arr = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]; return arr[(val % 16)]; }
+        function formatTimeISO(iso) { if(!iso) return "--:--"; const d = new Date(iso); return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0'); }
+        
         function getWeatherInfo(code, isDay = 1) {
-            let info = weatherMap[code] || { icon: 'fa-cloud', text: 'Nublado' };
-            let iconClass = info.icon;
+            let info = weatherMap[code] || weatherMap[3];
+            let svgKey = info.svg;
+            let faClass = info.fa;
+            let bg = info.bgClass;
+            
             if (isDay === 0) {
-                if (iconClass === 'fa-sun') iconClass = 'fa-moon';
-                if (iconClass === 'fa-cloud-sun') iconClass = 'fa-cloud-moon';
+                if (svgKey === 'sun') svgKey = 'moon';
+                if (svgKey === 'cloudSun') svgKey = 'cloudMoon';
+                if (faClass === 'fa-sun') faClass = 'fa-moon';
+                if (faClass === 'fa-cloud-sun') faClass = 'fa-cloud-moon';
+                if (bg === 'bg-sun') bg = ''; 
             }
-            return { icon: iconClass, text: info.text };
+            return { svgHtml: svgTemplates[svgKey], faClass: faClass, text: info.text, bgClass: bg };
         }
 
         async function updateWeather() {
             try {
-                const res = await fetch(API_URL);
-                if(!res.ok) throw new Error("API Error");
-                const data = await res.json();
-                const curr = data.current;
+                const res = await fetch(API_URL); if(!res.ok) throw new Error("API Error");
+                const data = await res.json(); const curr = data.current;
                 const info = getWeatherInfo(curr.weather_code, curr.is_day);
+                const tempVal = Math.round(curr.temperature_2m), windSpeed = Math.round(curr.wind_speed_10m);
+                
+                document.getElementById('temp-val').textContent = tempVal; document.getElementById('cond-text').textContent = info.text;
+                document.getElementById('main-icon').innerHTML = info.svgHtml;
+                document.getElementById('wind-txt').textContent = windSpeed + " km/h"; document.getElementById('wind-dir').textContent = degToCompass(curr.wind_direction_10m);
+                document.getElementById('sunrise-txt').textContent = formatTimeISO(data.daily.sunrise[0]); document.getElementById('sunset-txt').textContent = formatTimeISO(data.daily.sunset[0]);
 
-                document.getElementById('temp-val').textContent = Math.round(curr.temperature_2m);
-                document.getElementById('cond-text').textContent = info.text;
-                document.getElementById('main-icon').innerHTML = `<i class="fa-solid ${info.icon}"></i>`;
-                document.getElementById('wind-txt').textContent = Math.round(curr.wind_speed_10m) + " km/h";
-                document.getElementById('wind-dir').textContent = degToCompass(curr.wind_direction_10m);
-                document.getElementById('sunrise-txt').textContent = formatTimeISO(data.daily.sunrise[0]);
-                document.getElementById('sunset-txt').textContent = formatTimeISO(data.daily.sunset[0]);
+                // Atmos Effect
+                const bgContainer = document.getElementById('weather-current-bg');
+                bgContainer.classList.remove('bg-rain', 'bg-sun', 'bg-cloud', 'bg-storm');
+                if(info.bgClass) bgContainer.classList.add(info.bgClass);
 
-                const hCont = document.getElementById('hourly-row');
-                hCont.innerHTML = '';
+                // Alerts
+                const tempContainer = document.getElementById('temp-block-container'), windItem = document.getElementById('wind-item');
+                tempContainer.classList.toggle('alert-heat-active', tempVal > 35);
+                windItem.classList.toggle('alert-wind-active', windSpeed > 40);
+                windItem.style.animation = windSpeed > 40 ? "animWindShake 0.5s infinite" : "none";
+
+                // Forecasts
+                const hCont = document.getElementById('hourly-row'); hCont.innerHTML = '';
                 const currentHour = new Date().getHours();
-                for (let i = 1; i <= 5; i++) {
-                    const idx = currentHour + i;
-                    if(!data.hourly.time[idx]) continue;
-                    const dateObj = new Date(data.hourly.time[idx]);
-                    const hourLabel = String(dateObj.getHours()).padStart(2, '0') + ":00";
-                    const temp = Math.round(data.hourly.temperature_2m[idx]);
+                for (let i = 1; i <= 6; i++) {
+                    const idx = currentHour + i; if(!data.hourly.time[idx]) continue;
+                    const d = new Date(data.hourly.time[idx]);
                     const wInfo = getWeatherInfo(data.hourly.weather_code[idx], data.hourly.is_day[idx]);
-                    hCont.innerHTML += `
-                        <div class="forecast-unit">
-                            <span class="f-time">${hourLabel}</span>
-                            <i class="fa-solid ${wInfo.icon} f-icon"></i>
-                            <span class="f-temp">${temp}°</span>
-                        </div>`;
+                    hCont.innerHTML += `<div class="forecast-unit"><span class="f-time">${String(d.getHours()).padStart(2,'0')}:00</span><i class="fa-solid ${wInfo.faClass} f-icon"></i><span class="f-temp">${Math.round(data.hourly.temperature_2m[idx])}°</span></div>`;
                 }
-                const dCont = document.getElementById('daily-row');
-                dCont.innerHTML = '';
+                const dCont = document.getElementById('daily-row'); dCont.innerHTML = '';
                 for (let i = 1; i <= 5; i++) {
                     const d = new Date(data.daily.time[i]);
-                    let dName = d.toLocaleDateString('pt-PT', { weekday: 'short' }).replace('.', '');
-                    dName = dName.charAt(0).toUpperCase() + dName.slice(1);
-                    const max = Math.round(data.daily.temperature_2m_max[i]);
-                    const min = Math.round(data.daily.temperature_2m_min[i]);
+                    let dName = d.toLocaleDateString('pt-PT', { weekday: 'short' }).replace('.','').charAt(0).toUpperCase() + d.toLocaleDateString('pt-PT', { weekday: 'short' }).slice(1);
                     const wInfo = getWeatherInfo(data.daily.weather_code[i], 1);
-                    dCont.innerHTML += `
-                        <div class="forecast-unit">
-                            <span class="f-time" style="font-weight: 500;">${dName}</span>
-                            <i class="fa-solid ${wInfo.icon} f-icon"></i>
-                            <div><span class="f-temp">${max}°</span> <span class="f-temp min-temp">/${min}°</span></div>
-                        </div>`;
+                    dCont.innerHTML += `<div class="forecast-unit"><span class="f-time" style="font-weight:500;">${dName}</span><i class="fa-solid ${wInfo.faClass} f-icon"></i><div><span class="f-temp">${Math.round(data.daily.temperature_2m_max[i])}°</span> <span class="f-temp min-temp">/${Math.round(data.daily.temperature_2m_min[i])}°</span></div></div>`;
                 }
                 setSystemStatus(true);
-            } catch(e) { console.error("Erro meteo", e); setSystemStatus(false); }
+            } catch(e) { console.error(e); setSystemStatus(false); }
         }
-        updateWeather();
-        setInterval(updateWeather, 300000); 
+        updateWeather(); setInterval(updateWeather, 300000);
     </script>
 </body>
 </html>
