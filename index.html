@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Relógio_Painel</title>
+    <title>Painel CMOS Leiria</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -332,7 +332,17 @@
         loadPrefs();
 
         let alertTimeout = null, isAlertActive = false;
-        function triggerShiftAlert() { if (isAlertActive) return; isAlertActive = true; document.body.classList.add('shift-alert-active'); clearTimeout(alertTimeout); alertTimeout = setTimeout(() => { document.body.classList.remove('shift-alert-active'); isAlertActive = false; }, 60000); }
+        function triggerShiftAlert() { 
+            if (isAlertActive) return; 
+            isAlertActive = true; 
+            document.body.classList.add('shift-alert-active'); 
+            clearTimeout(alertTimeout); 
+            // Valor alterado de 60000 (1 min) para 120000 (2 min)
+            alertTimeout = setTimeout(() => { 
+                document.body.classList.remove('shift-alert-active'); 
+                isAlertActive = false; 
+            }, 120000); 
+        }
         function updateClock() {
             const now = new Date();
             const h = String(now.getHours()).padStart(2, '0'), m = String(now.getMinutes()).padStart(2, '0'), s = String(now.getSeconds()).padStart(2, '0');
@@ -438,5 +448,4 @@
         updateWeather(); setInterval(updateWeather, 300000);
     </script>
 </body>
-
 </html>
