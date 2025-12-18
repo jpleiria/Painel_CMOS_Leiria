@@ -15,6 +15,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         :root { 
             --clock-scale: 2; 
+            --weather-scale: 1;
             /* Cores Base */
             --sun-color: #fbbf24;
             --rain-color: #60a5fa;
@@ -40,9 +41,8 @@
         .ctrl-btn { color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1.1rem; transition: all 0.2s; }
         .ctrl-btn:hover { color: #fff; transform: scale(1.1); }
         
-        /* Modificações para o label de loading e a barra */
         .progress-container { 
-            position: fixed; /* O MAIS IMPORTANTE: Garante que fica fixo no viewport */
+            position: fixed; 
             bottom: 0; left: 0; width: 100%; height: 6px; 
             background: rgba(255,255,255,0.05); z-index: 50; 
         }
@@ -53,11 +53,10 @@
             transition: width 1s linear; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); 
         }
 
-        /* Novo estilo para o label discreto, acima e à esquerda */
         .progress-label {
             position: absolute;
-            bottom: 100%; /* Posiciona acima da barra de 6px */
-            left: 5px; /* Discretamente à esquerda */
+            bottom: 100%; 
+            left: 5px; 
             color: rgba(255, 255, 255, 0.4); 
             font-size: 0.65rem; 
             font-weight: 600;
@@ -66,7 +65,6 @@
             pointer-events: none; 
             white-space: nowrap; 
             padding-bottom: 2px;
-            /* Z-index ligeiramente superior para aparecer sobre a barra de fundo */
             z-index: 51; 
         }
         .progress-label #progress-percent {
@@ -77,7 +75,16 @@
         .watchdog-indicator.offline { background-color: #ef4444; box-shadow: 0 0 15px #ef4444; animation: blinkFast 1s infinite; }
 
         /* --- LAYOUT --- */
-        main { height: 100%; width: 100%; display: flex; flex-direction: column; align-items: center; padding: 4vh 3vw 6vh 3vw; }
+        main {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between; /* 👈 chave */
+    padding: 4vh 3vw 6vh 3vw;
+}
+
         .clock-section { text-align: center; width: 100%; text-shadow: 0 4px 15px rgba(0,0,0,0.8); z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
         /* --- CLOCK STABILITY FIX --- */
@@ -85,12 +92,11 @@
             font-size: calc(14vh * var(--clock-scale)); 
             font-weight: 800; 
             line-height: 0.9; 
-            display: inline-flex; /* Alterado para inline-flex para centrar melhor */
+            display: inline-flex; 
             justify-content: center; 
             align-items: baseline; 
             cursor: pointer; 
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            /* FIX 1: Força números com mesma largura */
             font-variant-numeric: tabular-nums; 
             position: relative;
         }
@@ -110,10 +116,9 @@
             font-weight: 400; 
             opacity: 0.8; 
             margin-left: 1vh;
-            /* FIX 2: Largura fixa e alinhamento */
             display: inline-block;
-            width: 1.4em; /* Reserva espaço para "55" */
-            text-align: left; /* Garante que cresce para a direita sem empurrar a esquerda */
+            width: 1.4em; 
+            text-align: left; 
         }
 
         .shift-anim-container { flex-grow: 1; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 30px; opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
@@ -132,7 +137,15 @@
         body.shift-alert-active .sync-icon { opacity: 0.8; animation: spinSlow 3s infinite linear; }
 
         /* --- WEATHER SECTION & ATMOSPHERE --- */
-        .weather-section { margin-bottom: 1vh; display: flex; justify-content: center; width: 100%; }
+        .weather-section { 
+            margin-bottom: 1vh; 
+            display: flex; 
+            justify-content: center; 
+            width: 100%;
+            transform: scale(var(--weather-scale));
+            transform-origin: center;
+            transition: transform 0.3s ease;
+        }
         .glass-card { 
             background: rgba(15, 15, 25, 0.65); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 20px;
@@ -284,6 +297,11 @@
                 <i class="fa-solid fa-plus ctrl-btn" onclick="adjustClockScale(0.1)"></i>
             </div>
             <div class="ctrl-group">
+                <i class="fa-solid fa-minus ctrl-btn" onclick="adjustWeatherScale(-0.1)"></i>
+                <i class="fa-solid fa-cloud" style="font-size: 0.8rem; opacity: 0.5;"></i>
+                <i class="fa-solid fa-plus ctrl-btn" onclick="adjustWeatherScale(0.1)"></i>
+            </div>
+            <div class="ctrl-group">
                 <div class="ctrl-btn" onclick="cycleFonts()"><i class="fa-solid fa-font"></i></div>
             </div>
             <div class="ctrl-btn" onclick="toggleFullScreen()"><i class="fa-solid fa-expand" id="fs-icon"></i></div>
@@ -291,23 +309,10 @@
 
         <main>
             <div class="clock-section">
-                <div class="time-wrapper" ondblclick="triggerShiftAlert()">
+                <div class="time-wrapper">
                     <span id="h">--</span><span class="colon">:</span><span id="m">--</span><span class="seconds" id="s">--</span>
                 </div>
                 <div id="date-full" class="date-display">A carregar...</div>
-            </div>
-
-            <div class="shift-anim-container">
-                <div class="shift-title"><i class="fa-solid fa-triangle-exclamation"></i> Mudança de Turno <i class="fa-solid fa-triangle-exclamation"></i></div>
-                <div class="cards-row">
-                    <div class="team-card outgoing">
-                        <i class="fa-solid fa-users-slash team-icon"></i><div class="team-label">Piquete de Saída</div><i class="fa-solid fa-arrow-left-long" style="margin-top:5px; opacity: 0.7;"></i>
-                    </div>
-                    <i class="fa-solid fa-arrows-rotate sync-icon"></i>
-                    <div class="team-card incoming">
-                        <i class="fa-solid fa-users team-icon"></i><div class="team-label">Piquete de Entrada</div><i class="fa-solid fa-check" style="margin-top:5px"></i>
-                    </div>
-                </div>
             </div>
 
             <div class="weather-section">
@@ -352,36 +357,26 @@
     </div>
     <script>
         const fontClasses = ['font-style-outfit', 'font-style-chakra', 'font-style-tech', 'font-style-orbit'];
-        let currentFontIdx = 0, clockScale = 2.0;
+        let currentFontIdx = 0, clockScale = 2.0, weatherScale = 1.0;
         function loadPrefs() {
             const savedFont = localStorage.getItem('cmos_font_pref'); if(savedFont !== null) { currentFontIdx = parseInt(savedFont); applyFont(); }
             const savedScale = localStorage.getItem('cmos_scale_pref'); if(savedScale !== null) { clockScale = parseFloat(savedScale); applyScale(); }
+            const savedWeatherScale = localStorage.getItem('cmos_weather_scale_pref'); if(savedWeatherScale !== null) { weatherScale = parseFloat(savedWeatherScale); applyWeatherScale(); }
         }
         function cycleFonts() { currentFontIdx = (currentFontIdx + 1) % fontClasses.length; applyFont(); localStorage.setItem('cmos_font_pref', currentFontIdx); }
         function applyFont() { document.body.classList.remove(...fontClasses); document.body.classList.add(fontClasses[currentFontIdx]); }
         function adjustClockScale(delta) { clockScale = Math.max(0.5, Math.min(2.0, clockScale + delta)); applyScale(); localStorage.setItem('cmos_scale_pref', clockScale); }
         function applyScale() { document.documentElement.style.setProperty('--clock-scale', clockScale); }
+        function adjustWeatherScale(delta) { weatherScale = Math.max(0.5, Math.min(1.5, weatherScale + delta)); applyWeatherScale(); localStorage.setItem('cmos_weather_scale_pref', weatherScale); }
+        function applyWeatherScale() { document.documentElement.style.setProperty('--weather-scale', weatherScale); }
         function toggleFullScreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); document.getElementById('fs-icon').classList.replace('fa-expand', 'fa-compress'); } else { if (document.exitFullscreen) { document.exitFullscreen(); document.getElementById('fs-icon').classList.replace('fa-compress', 'fa-expand'); } } }
         setInterval(() => { const layer = document.getElementById('content-layer'); layer.style.transform = `translate(${Math.floor(Math.random() * 7) - 3}px, ${Math.floor(Math.random() * 7) - 3}px)`; }, 300000);
         loadPrefs();
 
-        let alertTimeout = null, isAlertActive = false;
-        function triggerShiftAlert() { 
-            if (isAlertActive) return; 
-            isAlertActive = true; 
-            document.body.classList.add('shift-alert-active'); 
-            clearTimeout(alertTimeout); 
-            // Valor alterado de 60000 (1 min) para 120000 (2 min)
-            alertTimeout = setTimeout(() => { 
-                document.body.classList.remove('shift-alert-active'); 
-                isAlertActive = false; 
-            }, 120000); 
-        }
         function updateClock() {
             const now = new Date();
             const h = String(now.getHours()).padStart(2, '0'), m = String(now.getMinutes()).padStart(2, '0'), s = String(now.getSeconds()).padStart(2, '0');
             document.getElementById('h').textContent = h; document.getElementById('m').textContent = m; document.getElementById('s').textContent = s;
-            if (m === '00' && s === '00' && (h === '08' || h === '20')) triggerShiftAlert();
             let dateStr = now.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
             document.getElementById('date-full').textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
             const currentTotalSeconds = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
@@ -389,13 +384,10 @@
             
             let elapsed;
             if (currentTotalSeconds >= startDay && currentTotalSeconds < startNight) {
-                // Turno Diurno (08:00 a 19:59:59)
                 elapsed = currentTotalSeconds - startDay;
             } else if (currentTotalSeconds >= startNight) {
-                // Turno Noturno (20:00 a 23:59:59)
                 elapsed = currentTotalSeconds - startNight;
             } else {
-                // Turno Noturno (00:00 a 07:59:59) - Passou da meia-noite
                 elapsed = (24 * 3600 - startNight) + currentTotalSeconds;
             }
 
