@@ -189,12 +189,7 @@
 
         /* --- ATMOSPHERIC EFFECTS (CSS ONLY) --- */
         .atmos-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0; transition: opacity 1s ease; }
-        .bg-rain .atmos-layer { opacity: 1; }
-        .bg-rain .atmos-layer::before {
-            content: ''; position: absolute; top: -100%; left: 0; width: 100%; height: 200%;
-            background: repeating-linear-gradient(transparent 0, transparent 4px, rgba(147, 197, 253, 0.15) 4px, rgba(147, 197, 253, 0.2) 6px);
-            animation: atmosRain 0.8s linear infinite;
-        }
+        .bg-rain .atmos-layer { opacity: 1; background: rgba(96, 165, 250, 0.07); }
         .bg-sun .atmos-layer { opacity: 1; }
         .bg-sun .atmos-layer::before {
             content: ''; position: absolute; top: 50%; left: 50%; width: 150%; height: 150%;
